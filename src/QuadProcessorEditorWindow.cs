@@ -161,10 +161,11 @@ namespace QuadSpriteProcessor
                     (float)processedCount / fileCount);
 
                 var loweredPath = file.ToLower();
-                if (loweredPath.Contains("assets/plugins") ||
-                    loweredPath.Contains("assets/samples/") ||
+                if (loweredPath.Contains("assets\\plugins") ||
+                    loweredPath.Contains("assets\\samples") ||
                     loweredPath.Contains("~"))
                 {
+                    // Debug.LogWarning($"Skipping texture in. {loweredPath}");
                     continue;
                 }
 
@@ -260,7 +261,7 @@ namespace QuadSpriteProcessor
 
                 var endTime = System.DateTime.Now;
                 var duration = endTime - startTime;
-                Debug.Log($"Texture processing ended within: {duration.TotalSeconds:F2} seconds)");
+                Debug.Log($"Processing ended within: {duration.TotalSeconds:F2} seconds)");
             }
 
             var successCount = processedCount - failedCount;
