@@ -2,7 +2,7 @@
 
 <img src="Documentation~/editor-warning.png" width="600" alt="Editor Warning"/>
 
-## Why Quad Divisible?
+## Why Quad-Divisible?
 
 During school projects, artists have been giving me sprites with dimensions like 543x981 or 1381x737. These can't be compressed to DXT/BC formats, thus bloating our final build size.
 
