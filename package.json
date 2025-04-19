@@ -2,13 +2,12 @@
   "name": "com.maoyeedy.quad-sprite-processor",
   "version": "1.0.0",
   "displayName": "Quad-Divisible Sprite Processor",
-  "description": "Adjusts sprite dimensions to be divisible by 4, for optimal compression",
+  "description": "Resizes sprite dimensions to be divisible by 4 for optimal compression",
   "author": {
     "name": "Maoyeedy",
     "url": "https://github.com/Maoyeedy"
   },
   "documentationUrl": "https://github.com/Maoyeedy/QuadSpriteProcessor",
-  "licensesUrl": "https://github.com/Maoyeedy/QuadSpriteProcessor/blob/master/LICENSE.md",
   "repository": {
     "type": "git",
     "url": "https://github.com/Maoyeedy/QuadSpriteProcessor.git"
