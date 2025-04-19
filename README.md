@@ -38,7 +38,7 @@ Only supports Unity **2021.3** Onwards. (As it utilizes `Texture2D.Reinitialize`
 
 ### 2. Editor window
 - *Tools - Texture Processing*
-- Set path, scan, select, process
+- Set path, Scan, Select, Process
 
  <img src="Documentation~/editor-window.png" width="400" alt="Editor Warning"/>
 
@@ -49,8 +49,8 @@ Only supports Unity **2021.3** Onwards. (As it utilizes `Texture2D.Reinitialize`
 
 ## More Background Stories
 
-As most of my projects are showcased with WebGL, I've been trying to squeeze my build size even smaller for faster loading time.
+As most of my projects are showcased with WebGL, I've been trying to squeeze my build size even smaller for faster loading time. (I once optimized a Game Jam WebGL Build from 100MB to merely 40MB)
 
-(I highly recommend [ProjectAuditor](https://github.com/Unity-Technologies/ProjectAuditor), or manually open your Editor.log to check 'Build Report'.)
+When I found that DXT/BC only work on quad-divisible textures, I wrote a [custom Powershell script](https://gist.github.com/Maoyeedy/769ad8f2f4faf3f5c219b07658bc3880), using ImageMagick to recursively process all textures in the project. But that requires CLI and is not user-friendly. So I decided to integrate such feature into Unity Editor.
 
-When I found that DXT/BC only work on quad-divisible textures, I wrote a [custom powershell script](https://gist.github.com/Maoyeedy/769ad8f2f4faf3f5c219b07658bc3880), using ImageMagick to recursively process all textures in the project. But that can be destructive and not that user-friendly. So I decided to integrate it into Unity Editor.
+Lastly, if you have never think about build size, I highly recommend [ProjectAuditor](https://github.com/Unity-Technologies/ProjectAuditor), or manually open your Editor.log to check 'Build Report'. You may be very likely surprised at the results.
