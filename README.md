@@ -23,10 +23,12 @@ During school projects, artists have been giving me sprites with dimensions like
 
 ## How to Install
 
-Package Manager - Install Package from Git URL
+*Package Manager - Install Package from Git URL*
 ```
 https://github.com/Maoyeedy/QuadSpriteProcessor.git
 ```
+
+Only supports Unity **2021.3** Onwards. (As it utilizes `Texture2D.Reinitialize`)
 
 ## How to Use
 
@@ -35,7 +37,7 @@ https://github.com/Maoyeedy/QuadSpriteProcessor.git
 - "Resize to be Quad-Divisible"
 
 ### 2. Editor window
-- Tools → Texture Processing
+- *Tools - Texture Processing*
 - Set path, scan, select, process
 
  <img src="Documentation~/editor-window.png" width="400" alt="Editor Warning"/>
