@@ -58,7 +58,7 @@ namespace QuadSpriteProcessor
                 else
                 {
                     EditorUtility.DisplayDialog("No Valid Textures",
-                        "No valid textures found in selection. Please select PNG, JPG, JPEG, TGA or EXR files.",
+                        "No valid textures found in selection. Please select PNG, JPG, JPEG files.",
                         "OK");
                 }
                 return;
@@ -140,7 +140,7 @@ namespace QuadSpriteProcessor
             var ext = Path.GetExtension(path).ToLower();
 
             // Check if it's a supported texture format
-            return ext is ".png" or ".jpg" or ".jpeg" or ".tga" or ".exr";
+            return ext is ".png" or ".jpg" or ".jpeg";
         }
     }
 }

@@ -105,12 +105,10 @@ namespace QuadSpriteProcessor
                 case ".jpg":
                 case ".jpeg":
                     return texture.EncodeToJPG();
-// #if UNITY_2021_3_OR_NEWER
-                case ".tga":
-                    return texture.EncodeToTGA();
-                case ".exr":
-                    return texture.EncodeToEXR();
-// #endif
+                // case ".tga":
+                    // return texture.EncodeToTGA();
+                // case ".exr":
+                    // return texture.EncodeToEXR();
                 default:
                     Debug.LogWarning($"Unsupported file format for encoding: {fileExtension}");
                     return null;

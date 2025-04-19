@@ -11,7 +11,6 @@ namespace QuadSpriteProcessor
         private Vector2 _scrollPosition;
         private bool _processSubfolders = true;
         private string _targetFolder = "Assets";
-        private GUIStyle _headerStyle;
 
         [MenuItem("Tools/Texture Processing")]
         public static void ShowWindow()
@@ -20,25 +19,8 @@ namespace QuadSpriteProcessor
             window.minSize = new Vector2(500, 400);
         }
 
-        private void OnEnable()
-        {
-            _headerStyle = new GUIStyle
-            {
-                fontStyle = FontStyle.Bold,
-                normal =
-                {
-                    textColor = EditorGUIUtility.isProSkin
-                        ? new Color(0.9f, 0.9f, 0.9f)
-                        : new Color(0.2f, 0.2f, 0.2f)
-                }
-            };
-        }
-
         private void OnGUI()
         {
-            // GUILayout.Label("Texture Resolution Editor", _headerStyle);
-            // EditorGUILayout.Space();
-
             EditorGUILayout.BeginHorizontal();
             _targetFolder = EditorGUILayout.TextField("Target Folder", _targetFolder);
             if (GUILayout.Button("Browse", GUILayout.Width(80)))
@@ -159,7 +141,7 @@ namespace QuadSpriteProcessor
                 ? SearchOption.AllDirectories
                 : SearchOption.TopDirectoryOnly;
 
-            var fileExtensions = new[] { "*.png", "*.jpg", "*.jpeg", "*.tga", "*.exr" };
+            var fileExtensions = new[] { "*.png", "*.jpg", "*.jpeg" };
             var allFiles = new List<string>();
 
             foreach (var ext in fileExtensions)
