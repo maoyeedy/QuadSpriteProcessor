@@ -4,7 +4,7 @@
 
 ## Why Quad-Divisible?
 
-During school projects, artists have been giving me sprites with dimensions like 543x981 or 1381x737. These can't be compressed to DXT/BC formats, thus bloating our final build size.
+During school projects, artists have been giving me sprites with dimensions like 543x981 or 1381x737. These can't be compressed to DXTn/BCn formats, thus bloating our final build size.
 
 <div align="center">
   <table>
@@ -15,7 +15,7 @@ During school projects, artists have been giving me sprites with dimensions like
   </table>
 </div>
 
-## Feature
+## Features
 
 - Resize textures to be quad-divisible with minimal quality loss
 - Batch process multiple textures at once
@@ -42,15 +42,17 @@ Only supports Unity **2021.3** Onwards. (As it utilizes `Texture2D.Reinitialize`
 
  <img src="Documentation~/editor-window.png" width="400" alt="Editor Warning"/>
 
+# Miscs
+
 ## TODO
 - Bug Fixes (There can definitely be potential bugs, so Issues/PR are welcome)
 - An option to use it as AssetPostprocessor, with some matching rules. So that it will auto-convert every sprite you import.
 - Backup of the original sprites? (I think this bloats your unity project size. Also if you want to revert them, why not rely on VCS)
 
-## More Background Stories
+## Why I made this
 
-As most of my projects are showcased with WebGL, I've been trying to squeeze my build size even smaller for faster loading time. (I once optimized a Game Jam WebGL Build from 100MB to merely 40MB)
+As most of my projects are showcased with WebGL, I've been trying to squeeze my build size even smaller for faster loading time. 
 
-When I found that DXT/BC only work on quad-divisible textures, I wrote a [custom Powershell script](https://gist.github.com/Maoyeedy/769ad8f2f4faf3f5c219b07658bc3880), using ImageMagick to recursively process all textures in the project. But that requires CLI and is not user-friendly. So I decided to integrate such feature into Unity Editor.
+I once optimized a 2D game WebGL Build from 100MB to merely 40MB. For that, I wrote a [custom Powershell script](https://gist.github.com/Maoyeedy/769ad8f2f4faf3f5c219b07658bc3880) to recursively process all textures. However, that requires CLI and ImageMagick, so I made it integrated into Unity Editor to be more user-friendly.
 
 Lastly, if you have never think about build size, I highly recommend [ProjectAuditor](https://github.com/Unity-Technologies/ProjectAuditor), or manually open your Editor.log to check 'Build Report'. You may be very likely surprised at the results.
