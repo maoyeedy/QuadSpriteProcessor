@@ -4,7 +4,7 @@
 
 ## Why Quad Divisible?
 
-During school projects, the artists have been always giving me sprites with odd dimensions like 543x981. These can't be compressed to DXT/BC formats, thus bloating our final build size.
+During school projects, artists have been giving me sprites with dimensions like 543x981 or 1381x737. These can't be compressed to DXT/BC formats, thus bloating our final build size.
 
 <div align="center">
   <table>
