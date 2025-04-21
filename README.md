@@ -28,7 +28,7 @@ Package Manager - *Install Package from Git URL*
 https://github.com/Maoyeedy/QuadSpriteProcessor.git
 ```
 
-Or use [OpenUPM CLI](https://openupm.com/)
+Or use [OpenUPM CLI](https://openupm.com/packages/com.maoyeedy.quad-sprite-processor/)
 ```
 openupm add com.maoyeedy.quad-sprite-processor
 ```
