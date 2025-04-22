@@ -53,6 +53,7 @@ Note: Only supports Unity **2021.3** Onwards. (As it utilizes `Texture2D.Reiniti
 - Bug Fixes (There can definitely be potential bugs, so Issues/PR are welcome)
 - An option to use it as AssetPostprocessor, with some matching rules. So that it will auto-convert every sprite you import.
 - Backup of the original sprites? (I think this bloats your unity project size. Also if you want to revert them, why not rely on VCS)
+- For Tansparent-Background PNG, instead of resize, add transparent pixel to the border.
 
 ## Why I made this
 
