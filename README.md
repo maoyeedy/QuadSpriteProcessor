@@ -6,6 +6,8 @@
 
 During school projects, artists have been giving me sprites with dimensions like 543x981 or 1381x737. These can't be compressed to DXTn/BCn formats, thus bloating our final build size.
 
+But they can be much smaller if their dimensions are resized to multiples of four:
+
 <div align="center">
   <table>
     <tr>
@@ -54,6 +56,7 @@ Note: Only supports Unity **2021.3** Onwards. (As it utilizes `Texture2D.Reiniti
 - An option to use it as AssetPostprocessor, with some matching rules. So that it will auto-convert every sprite you import.
 - Backup of the original sprites? (I think this bloats your unity project size. Also if you want to revert them, why not rely on VCS)
 - For Tansparent-Background PNG, instead of resize, add transparent pixel to the border.
+- Option to "Round to nearest power of two" (For mipmap needs)
 
 ## Why I made this
 
