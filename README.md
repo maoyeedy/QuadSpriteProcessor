@@ -6,9 +6,11 @@
 
 ## Why Quad-Divisible?
 
-During school projects, artists have been giving me sprites with dimensions like 543x981 or 1381x737. These can't be compressed to DXTn/BCn formats, thus bloating our final build size.
+During school projects, artists often gave me sprites with dimensions like 543x981 or 1381x737. 
 
-But they can be much smaller if their dimensions are resized to multiples of four:
+Those can't be compressed to DXTn/BCn formats, thus bloating our final build size.
+
+However, By resizing their dimensions to multiples of four, we witness significant smaller size:
 
 <div align="center">
   <table>
