@@ -1,5 +1,7 @@
 # Quad-Divisible Sprite Processor
 
+[![openupm](https://img.shields.io/npm/v/com.maoyeedy.quad-sprite-processor?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/com.maoyeedy.quad-sprite-processor/)
+
 <img src="Documentation~/editor-warning.png" width="600" alt="Editor Warning"/>
 
 ## Why Quad-Divisible?
