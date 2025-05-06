@@ -12,10 +12,10 @@ namespace QuadSpriteProcessor
         private bool _processSubfolders = true;
         private string _targetFolder = "Assets";
 
-        [MenuItem("Tools/Texture Processing")]
+        [MenuItem("Tools/Quad Sprite Processor")]
         public static void ShowWindow()
         {
-            var window = GetWindow<QuadProcessorEditorWindow>("Texture Resolution Editor");
+            var window = GetWindow<QuadProcessorEditorWindow>("Quad Sprite Processor");
             window.minSize = new Vector2(500, 400);
         }
 
@@ -25,7 +25,7 @@ namespace QuadSpriteProcessor
             _targetFolder = EditorGUILayout.TextField("Target Folder", _targetFolder);
             if (GUILayout.Button("Browse", GUILayout.Width(80)))
             {
-                var newPath = EditorUtility.OpenFolderPanel("Select Texture Folder", "Assets", "");
+                var newPath = EditorUtility.OpenFolderPanel("Select Folder", "Assets", "");
                 if (!string.IsNullOrEmpty(newPath))
                 {
                     // Convert to relative project path if possible
@@ -46,16 +46,17 @@ namespace QuadSpriteProcessor
 
             EditorGUILayout.Space();
 
-            if (GUILayout.Button("Scan For Non-Divisible Textures"))
+            if (GUILayout.Button("Scan For Non-Quad-Divisible Sprites"))
             {
                 ScanTextures();
             }
 
-            EditorGUILayout.Space();
+            // EditorGUILayout.Space();
 
             if (_textures.Count > 0)
             {
                 EditorGUILayout.BeginHorizontal();
+
                 if (GUILayout.Button("Select All"))
                 {
                     foreach (var texture in _textures)
@@ -71,14 +72,14 @@ namespace QuadSpriteProcessor
                         texture.Selected = false;
                     }
                 }
+                EditorGUILayout.EndHorizontal();
 
-                if (GUILayout.Button("Process Selected Textures"))
+                if (GUILayout.Button("Process Selected Sprites"))
                 {
                     ProcessSelectedTextures();
                 }
 
                 EditorGUI.EndDisabledGroup();
-                EditorGUILayout.EndHorizontal();
 
                 DrawTextureList();
             }
