@@ -10,6 +10,7 @@ namespace QuadSpriteProcessor
         private readonly List<TextureAsset> _textures = new();
         private Vector2 _scrollPosition;
         private bool _processSubfolders = true;
+        private bool _considerImporterMaxSize = true;
         private string _targetFolder = "Assets";
 
         [MenuItem("Tools/Quad Sprite Processor")]
@@ -21,65 +22,16 @@ namespace QuadSpriteProcessor
 
         private void OnGUI()
         {
-            EditorGUILayout.BeginHorizontal();
-            _targetFolder = EditorGUILayout.TextField("Target Folder", _targetFolder);
-            if (GUILayout.Button("Browse", GUILayout.Width(80)))
-            {
-                var newPath = EditorUtility.OpenFolderPanel("Select Folder", "Assets", "");
-                if (!string.IsNullOrEmpty(newPath))
-                {
-                    // Convert to relative project path if possible
-                    if (newPath.StartsWith(Application.dataPath))
-                    {
-                        _targetFolder = "Assets" + newPath.Substring(Application.dataPath.Length);
-                    }
-                    else
-                    {
-                        _targetFolder = newPath;
-                    }
-                }
-            }
+            DrawToolbar();
+            DrawOptions();
 
-            EditorGUILayout.EndHorizontal();
-
-            _processSubfolders = EditorGUILayout.Toggle("Include Subfolders", _processSubfolders);
-
-            EditorGUILayout.Space();
-
-            if (GUILayout.Button("Scan For Non-Quad-Divisible Sprites"))
-            {
-                ScanTextures();
-            }
-
-            // EditorGUILayout.Space();
+            if (GUILayout.Button("Scan For Non-Quad-Divisible Sprites")) ScanTextures();
 
             if (_textures.Count > 0)
             {
-                EditorGUILayout.BeginHorizontal();
+                DrawSelectionButtons();
 
-                if (GUILayout.Button("Select All"))
-                {
-                    foreach (var texture in _textures)
-                    {
-                        texture.Selected = true;
-                    }
-                }
-
-                if (GUILayout.Button("Deselect All"))
-                {
-                    foreach (var texture in _textures)
-                    {
-                        texture.Selected = false;
-                    }
-                }
-                EditorGUILayout.EndHorizontal();
-
-                if (GUILayout.Button("Process Selected Sprites"))
-                {
-                    ProcessSelectedTextures();
-                }
-
-                EditorGUI.EndDisabledGroup();
+                if (GUILayout.Button("Process Selected Sprites")) ProcessSelectedTextures();
 
                 DrawTextureList();
             }
@@ -89,10 +41,51 @@ namespace QuadSpriteProcessor
             }
         }
 
+        private void DrawToolbar()
+        {
+            EditorGUILayout.BeginHorizontal();
+            _targetFolder = EditorGUILayout.TextField("Target Folder", _targetFolder);
+            if (GUILayout.Button("Browse", GUILayout.Width(80))) BrowseForFolder();
+
+            EditorGUILayout.EndHorizontal();
+        }
+
+        private void BrowseForFolder()
+        {
+            var newPath = EditorUtility.OpenFolderPanel("Select Folder", "Assets", "");
+            if (string.IsNullOrEmpty(newPath))
+                return;
+
+            // Convert to relative project path if possible
+            if (newPath.StartsWith(Application.dataPath))
+                _targetFolder = "Assets" + newPath.Substring(Application.dataPath.Length);
+            else
+                _targetFolder = newPath;
+        }
+
+        private void DrawOptions()
+        {
+            _processSubfolders = EditorGUILayout.Toggle("Include Subfolders", _processSubfolders);
+            _considerImporterMaxSize = EditorGUILayout.Toggle("Consider Importer Max Size", _considerImporterMaxSize);
+            EditorGUILayout.Space();
+        }
+
+        private void DrawSelectionButtons()
+        {
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("Select All"))
+                foreach (var texture in _textures)
+                    texture.Selected = true;
+
+            if (GUILayout.Button("Deselect All"))
+                foreach (var texture in _textures)
+                    texture.Selected = false;
+
+            EditorGUILayout.EndHorizontal();
+        }
+
         private void DrawTextureList()
         {
-            // EditorGUILayout.LabelField($"Found {_textures.Count} textures with dimensions not divisible by 4");
-
             _scrollPosition = EditorGUILayout.BeginScrollView(_scrollPosition);
 
             // Header
@@ -107,18 +100,13 @@ namespace QuadSpriteProcessor
             foreach (var texture in _textures)
             {
                 var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(texture.Path);
-
                 EditorGUILayout.BeginHorizontal();
                 texture.Selected = EditorGUILayout.Toggle(texture.Selected, GUILayout.Width(50));
 
                 if (tex != null)
-                {
                     EditorGUILayout.ObjectField(tex, typeof(Texture2D), false, GUILayout.Width(200));
-                }
                 else
-                {
                     EditorGUILayout.LabelField(Path.GetFileName(texture.Path), GUILayout.Width(200));
-                }
 
                 EditorGUILayout.LabelField($"{texture.CurrentWidth}x{texture.CurrentHeight}", GUILayout.Width(100));
                 EditorGUILayout.LabelField($"{texture.NewWidth}x{texture.NewHeight}", GUILayout.Width(100));
@@ -138,17 +126,11 @@ namespace QuadSpriteProcessor
                 return;
             }
 
-            var searchOption = _processSubfolders
-                ? SearchOption.AllDirectories
-                : SearchOption.TopDirectoryOnly;
-
+            var searchOption = _processSubfolders ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
             var fileExtensions = new[] { "*.png", "*.jpg", "*.jpeg" };
             var allFiles = new List<string>();
 
-            foreach (var ext in fileExtensions)
-            {
-                allFiles.AddRange(Directory.GetFiles(_targetFolder, ext, searchOption));
-            }
+            foreach (var ext in fileExtensions) allFiles.AddRange(Directory.GetFiles(_targetFolder, ext, searchOption));
 
             var fileCount = allFiles.Count;
             var processedCount = 0;
@@ -162,37 +144,12 @@ namespace QuadSpriteProcessor
                     (float)processedCount / fileCount);
 
                 var loweredPath = file.ToLower();
-                if (loweredPath.Contains("assets\\plugins") ||
-                    loweredPath.Contains("assets\\samples") ||
-                    loweredPath.Contains("~"))
-                {
-                    // Debug.LogWarning($"Skipping texture in. {loweredPath}");
+                if (ShouldSkipFile(loweredPath))
                     continue;
-                }
 
                 try
                 {
-                    var textureInfo = QuadProcessorUtility.GetTextureInfo(file);
-                    if (!QuadProcessorUtility.AreDimensionsDivisibleByFour(textureInfo.Width, textureInfo.Height))
-                    {
-                        var newWidth = textureInfo.Width % 4 != 0
-                            ? (int)Mathf.Ceil(textureInfo.Width / 4f) * 4
-                            : textureInfo.Width;
-
-                        var newHeight = textureInfo.Height % 4 != 0
-                            ? (int)Mathf.Ceil(textureInfo.Height / 4f) * 4
-                            : textureInfo.Height;
-
-                        _textures.Add(new TextureAsset
-                        {
-                            Path = file,
-                            CurrentWidth = textureInfo.Width,
-                            CurrentHeight = textureInfo.Height,
-                            NewWidth = newWidth,
-                            NewHeight = newHeight,
-                            Selected = true
-                        });
-                    }
+                    AddTextureIfNeeded(file);
                 }
                 catch (System.Exception e)
                 {
@@ -203,15 +160,71 @@ namespace QuadSpriteProcessor
             EditorUtility.ClearProgressBar();
 
             if (_textures.Count == 0)
-            {
                 EditorUtility.DisplayDialog("Scan Complete",
                     "No textures with dimensions not divisible by 4 were found.", "OK");
+        }
+
+        private bool ShouldSkipFile(string loweredPath)
+        {
+            return loweredPath.Contains("assets\\plugins") ||
+                   loweredPath.Contains("assets\\samples") ||
+                   loweredPath.Contains("assets\\editor") ||
+                   loweredPath.Contains("~");
+        }
+
+        private void AddTextureIfNeeded(string filePath)
+        {
+            if (_considerImporterMaxSize)
+                AddTextureBasedOnImporter(filePath);
+            else
+                AddTextureBasedOnActualSize(filePath);
+        }
+
+        private void AddTextureBasedOnActualSize(string filePath)
+        {
+            var textureInfo = QuadProcessorUtility.GetTextureInfo(filePath);
+
+            if (!QuadProcessorUtility.AreDimensionsDivisibleByFour(textureInfo.Width, textureInfo.Height))
+            {
+                var newWidth = QuadProcessorUtility.CalculateDivisibleByFour(textureInfo.Width);
+                var newHeight = QuadProcessorUtility.CalculateDivisibleByFour(textureInfo.Height);
+
+                _textures.Add(new TextureAsset
+                {
+                    Path = filePath,
+                    CurrentWidth = textureInfo.Width,
+                    CurrentHeight = textureInfo.Height,
+                    NewWidth = newWidth,
+                    NewHeight = newHeight,
+                    Selected = true
+                });
             }
+        }
+
+        private void AddTextureBasedOnImporter(string filePath)
+        {
+            var importedInfo = QuadProcessorUtility.GetImportedTextureInfo(filePath);
+
+            if (importedInfo.NeedsProcessing)
+                _textures.Add(new TextureAsset
+                {
+                    Path = filePath,
+                    CurrentWidth = importedInfo.ImportedWidth,
+                    CurrentHeight = importedInfo.ImportedHeight,
+                    NewWidth = importedInfo.NewImportedWidth,
+                    NewHeight = importedInfo.NewImportedHeight,
+                    SourceWidth = importedInfo.SourceWidth,
+                    SourceHeight = importedInfo.SourceHeight,
+                    NewSourceWidth = importedInfo.NewSourceWidth,
+                    NewSourceHeight = importedInfo.NewSourceHeight,
+                    Selected = true
+                });
         }
 
         private void ProcessSelectedTextures()
         {
             var selectedTextures = _textures.FindAll(t => t.Selected);
+
             if (selectedTextures.Count == 0)
             {
                 EditorUtility.DisplayDialog("No Textures Selected",
@@ -219,22 +232,31 @@ namespace QuadSpriteProcessor
                 return;
             }
 
-            var proceed = EditorUtility.DisplayDialog("Confirm Texture Modification",
-                $"You are about to modify {selectedTextures.Count} texture files. " +
-                "This operation cannot be undone. Proceed?", "Yes", "Cancel");
-
-            if (!proceed)
+            if (!ConfirmProcessing(selectedTextures.Count))
                 return;
 
+            ProcessTextures(selectedTextures);
+        }
+
+        private bool ConfirmProcessing(int count)
+        {
+            return EditorUtility.DisplayDialog("Confirm Texture Modification",
+                $"You are about to modify {count} texture files. " +
+                "This operation cannot be undone. Proceed?", "Yes", "Cancel");
+        }
+
+        private void ProcessTextures(List<TextureAsset> texturesToProcess)
+        {
             var startTime = System.DateTime.Now;
             var processedCount = 0;
             var failedCount = 0;
-            var totalCount = selectedTextures.Count;
+            var totalCount = texturesToProcess.Count;
 
             AssetDatabase.StartAssetEditing();
+
             try
             {
-                foreach (var texture in selectedTextures)
+                foreach (var texture in texturesToProcess)
                 {
                     var fileName = Path.GetFileName(texture.Path);
                     processedCount++;
@@ -245,7 +267,20 @@ namespace QuadSpriteProcessor
 
                     try
                     {
-                        QuadProcessor.ModifyTextureFile(texture.Path, texture.CurrentWidth, texture.CurrentHeight, texture.NewWidth, texture.NewHeight);
+                        if (_considerImporterMaxSize)
+                            QuadProcessor.ModifyTextureFile(
+                                texture.Path,
+                                texture.SourceWidth,
+                                texture.SourceHeight,
+                                texture.NewSourceWidth,
+                                texture.NewSourceHeight);
+                        else
+                            QuadProcessor.ModifyTextureFile(
+                                texture.Path,
+                                texture.CurrentWidth,
+                                texture.CurrentHeight,
+                                texture.NewWidth,
+                                texture.NewHeight);
                     }
                     catch (System.Exception e)
                     {
@@ -265,19 +300,21 @@ namespace QuadSpriteProcessor
                 Debug.Log($"Processing ended within: {duration.TotalSeconds:F2} seconds)");
             }
 
-            var successCount = processedCount - failedCount;
-            var message = $"Successfully processed {successCount} textures.";
+            ShowProcessingResults(processedCount, failedCount);
 
-            if (failedCount > 0)
-            {
-                message += $"\n{failedCount} textures failed (see console for details).";
-            }
-
-            EditorUtility.DisplayDialog("Processing Complete", message, "OK");
-
-            // Refresh the list to update any textures that may have changed
+            // Refresh the list
             _textures.Clear();
             ScanTextures();
+        }
+
+        private void ShowProcessingResults(int processed, int failed)
+        {
+            var successCount = processed - failed;
+            var message = $"Successfully processed {successCount} textures.";
+
+            if (failed > 0) message += $" {failed} textures failed (see console for details).";
+
+            EditorUtility.DisplayDialog("Processing Complete", message, "OK");
         }
     }
 }
