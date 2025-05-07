@@ -1,8 +1,10 @@
-using UnityEngine;
-using UnityEditor;
-using System.IO;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using UnityEditor;
+using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace QuadSpriteProcessor
 {
@@ -61,6 +63,7 @@ namespace QuadSpriteProcessor
                         "No valid textures found in selection. Please select PNG, JPG, JPEG files.",
                         "OK");
                 }
+
                 return;
             }
 
@@ -73,7 +76,7 @@ namespace QuadSpriteProcessor
             if (!proceed) return;
 
             // Process textures
-            var startTime = System.DateTime.Now;
+            var startTime = DateTime.Now;
             var processed = 0;
             var failed = 0;
 
@@ -85,7 +88,7 @@ namespace QuadSpriteProcessor
                     var (texture, path, info, newWidth, newHeight) = validTextures[i];
 
                     EditorUtility.DisplayProgressBar("Processing Textures",
-                        $"Processing {i+1}/{validTextures.Count}: {texture.name}",
+                        $"Processing {i + 1}/{validTextures.Count}: {texture.name}",
                         (float)i / validTextures.Count);
 
                     try
@@ -99,7 +102,7 @@ namespace QuadSpriteProcessor
 
                         processed++;
                     }
-                    catch (System.Exception e)
+                    catch (Exception e)
                     {
                         Debug.LogError($"Error processing texture {path}: {e.Message}");
                         failed++;
@@ -112,24 +115,20 @@ namespace QuadSpriteProcessor
                 AssetDatabase.Refresh();
                 EditorUtility.ClearProgressBar();
 
-                var endTime = System.DateTime.Now;
+                var endTime = DateTime.Now;
                 var duration = endTime - startTime;
                 Debug.Log($"Texture processing completed in {duration.TotalSeconds:F2} seconds");
             }
 
             // Show results
             if (failed > 0)
-            {
                 EditorUtility.DisplayDialog("Processing Complete",
                     $"Processed {processed} textures successfully.\n{failed} textures failed (see console for details).",
                     "OK");
-            }
             else
-            {
                 EditorUtility.DisplayDialog("Processing Complete",
                     $"Successfully processed {processed} textures.",
                     "OK");
-            }
         }
 
         private static bool IsValidTexture(Object obj)
