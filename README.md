@@ -43,29 +43,32 @@ Note: Only supports Unity **2021.3** Onwards. (As it utilizes `Texture2D.Reiniti
 
 ## How to Use
 
-### 1. Context Menu
+It's recommended to use it when making the final release builds, instead of whenever you import a new sprite.
+
+### 1. Editor window
+- *Tools/Quad Sprite Processor*
+- Set path, Scan, Select, Process
+
+   <img src="Documentation~/editor-window.png" width="400" alt="Editor Warning"/>
+
+### 2. Context Menu (less recommended)
 - (Multi-Select and) right-click assets in project panel.
 - *Resize to be Quad-Divisible*
 
-### 2. Editor window
-- *Tools - Texture Processing*
-- Set path, Scan, Select, Process
-
- <img src="Documentation~/editor-window.png" width="400" alt="Editor Warning"/>
-
-# Miscs
+# Development
 
 ## TODO
-- Bug Fixes (There can definitely be potential bugs, so Issues/PR are welcome)
-- An option to use it as AssetPostprocessor, with some matching rules. So that it will auto-convert every sprite you import.
-- Backup of the original sprites? (I think this bloats your unity project size. Also if you want to revert them, why not rely on VCS)
-- For Tansparent-Background PNG, instead of resize, add transparent pixel to the border.
-- Option to "Round to nearest power of two" (For mipmap needs)
+- [ ] Backup the original sprites? (Not high priority, as I myself'd just rely on VCS to rollback.)
+- [ ] Add tranparent pixel instead of resize for transparent PNG
+- [ ] Option to "Round to nearest power of two" (For mipmap needs)
+- [ ] Allow using it as AssetPostprocessor, with some matching rules. So that it auto-converts every sprite you import
 
-## Why I made this
+## Why making this
 
-As most of my projects are showcased with WebGL, I've been trying to squeeze my build size even smaller for faster loading time. 
+As most of my projects are built for WebGL, I've always been trying to squeeze the build sizes for faster loading time. 
 
-I once optimized a 2D game WebGL Build from 100MB to merely 40MB. For that, I wrote a [custom Powershell script](https://gist.github.com/Maoyeedy/769ad8f2f4faf3f5c219b07658bc3880) to recursively process all textures. However, that requires CLI and ImageMagick, so I made it integrated into Unity Editor to be more user-friendly.
+I once optimized a 2D game WebGL Build from 100MB to 40MB with a [custom Powershell script](https://gist.github.com/Maoyeedy/769ad8f2f4faf3f5c219b07658bc3880) to recursively process all textures. However, that requires CLI and ImageMagick, so I made it integrated into Unity Editor to be more user-friendly.
 
-Lastly, if you have never think about build size, I highly recommend [ProjectAuditor](https://github.com/Unity-Technologies/ProjectAuditor), or manually open your Editor.log to check 'Build Report'. You may be very likely surprised at the results.
+## Contribution
+
+Any bug reports/feature requests are welcome! [Open an issue](https://github.com/Maoyeedy/QuadSpriteProcessor/issues/new) and I will look into it asap.
