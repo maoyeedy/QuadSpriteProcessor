@@ -1,24 +1,18 @@
-﻿using UnityEngine;
-using UnityEditor;
-using System.IO;
+﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using UnityEditor;
+using UnityEngine;
 
 namespace QuadSpriteProcessor
 {
     public class QuadProcessorEditorWindow : EditorWindow
     {
         private readonly List<TextureAsset> _textures = new();
-        private Vector2 _scrollPosition;
-        private bool _processSubfolders = true;
         private bool _considerImporterMaxSize = true;
+        private bool _processSubfolders = true;
+        private Vector2 _scrollPosition;
         private string _targetFolder = "Assets";
-
-        [MenuItem("Tools/Quad Sprite Processor")]
-        public static void ShowWindow()
-        {
-            var window = GetWindow<QuadProcessorEditorWindow>("Quad Sprite Processor");
-            window.minSize = new Vector2(500, 400);
-        }
 
         private void OnGUI()
         {
@@ -39,6 +33,13 @@ namespace QuadSpriteProcessor
             {
                 EditorGUILayout.HelpBox("No textures found or scan not performed yet.", MessageType.Info);
             }
+        }
+
+        [MenuItem("Tools/Quad Sprite Processor")]
+        public static void ShowWindow()
+        {
+            var window = GetWindow<QuadProcessorEditorWindow>("Quad Sprite Processor");
+            window.minSize = new Vector2(500, 400);
         }
 
         private void DrawToolbar()
@@ -151,7 +152,7 @@ namespace QuadSpriteProcessor
                 {
                     AddTextureIfNeeded(file);
                 }
-                catch (System.Exception e)
+                catch (Exception e)
                 {
                     Debug.LogError($"Error reading texture {file}: {e.Message}");
                 }
@@ -247,7 +248,7 @@ namespace QuadSpriteProcessor
 
         private void ProcessTextures(List<TextureAsset> texturesToProcess)
         {
-            var startTime = System.DateTime.Now;
+            var startTime = DateTime.Now;
             var processedCount = 0;
             var failedCount = 0;
             var totalCount = texturesToProcess.Count;
@@ -282,7 +283,7 @@ namespace QuadSpriteProcessor
                                 texture.NewWidth,
                                 texture.NewHeight);
                     }
-                    catch (System.Exception e)
+                    catch (Exception e)
                     {
                         Debug.LogError($"Failed to process {texture.Path}: {e.Message}");
                         failedCount++;
@@ -295,7 +296,7 @@ namespace QuadSpriteProcessor
                 AssetDatabase.Refresh();
                 EditorUtility.ClearProgressBar();
 
-                var endTime = System.DateTime.Now;
+                var endTime = DateTime.Now;
                 var duration = endTime - startTime;
                 Debug.Log($"Processing ended within: {duration.TotalSeconds:F2} seconds)");
             }

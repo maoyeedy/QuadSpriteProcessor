@@ -22,15 +22,15 @@
     // For Editor Window
     public class TextureAsset
     {
-        public string Path;
-        public int CurrentWidth;
         public int CurrentHeight;
-        public int NewWidth;
+        public int CurrentWidth;
         public int NewHeight;
-        public int SourceWidth;
-        public int SourceHeight;
-        public int NewSourceWidth;
         public int NewSourceHeight;
+        public int NewSourceWidth;
+        public int NewWidth;
+        public string Path;
         public bool Selected;
+        public int SourceHeight;
+        public int SourceWidth;
     }
 }

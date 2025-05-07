@@ -1,7 +1,7 @@
 ﻿using System;
-using UnityEngine;
-using UnityEditor;
 using System.IO;
+using UnityEditor;
+using UnityEngine;
 using Object = UnityEngine.Object;
 
 namespace QuadSpriteProcessor
@@ -89,12 +89,11 @@ namespace QuadSpriteProcessor
             if (sourceWidth <= maxSize && sourceHeight <= maxSize)
                 return (sourceWidth, sourceHeight);
 
-            float aspectRatio = (float)sourceWidth / sourceHeight;
+            var aspectRatio = (float)sourceWidth / sourceHeight;
 
             if (sourceWidth >= sourceHeight)
                 return (maxSize, Mathf.RoundToInt(maxSize / aspectRatio));
-            else
-                return (Mathf.RoundToInt(maxSize * aspectRatio), maxSize);
+            return (Mathf.RoundToInt(maxSize * aspectRatio), maxSize);
         }
 
         public static (int width, int height) CalculateRequiredSourceDimensions(
@@ -102,8 +101,8 @@ namespace QuadSpriteProcessor
             int targetImportedWidth, int targetImportedHeight)
         {
             // Calculate ratios between target and current imported dimensions
-            float widthRatio = (float)targetImportedWidth / importedWidth;
-            float heightRatio = (float)targetImportedHeight / importedHeight;
+            var widthRatio = (float)targetImportedWidth / importedWidth;
+            var heightRatio = (float)targetImportedHeight / importedHeight;
 
             // Apply the same ratios to the source dimensions
             return (
@@ -150,19 +149,17 @@ namespace QuadSpriteProcessor
                 var newPixels = new Color[newWidth * newHeight];
 
                 for (var y = 0; y < newHeight; y++)
+                for (var x = 0; x < newWidth; x++)
                 {
-                    for (var x = 0; x < newWidth; x++)
-                    {
-                        var u = x / (float)(newWidth - 1);
-                        var v = y / (float)(newHeight - 1);
+                    var u = x / (float)(newWidth - 1);
+                    var v = y / (float)(newHeight - 1);
 
-                        var origX = Mathf.FloorToInt(u * (currentWidth - 1));
-                        var origY = Mathf.FloorToInt(v * (currentHeight - 1));
+                    var origX = Mathf.FloorToInt(u * (currentWidth - 1));
+                    var origY = Mathf.FloorToInt(v * (currentHeight - 1));
 
-                        newPixels[y * newWidth + x] =
-                            GetPixelSafe(originalPixels, origX, origY,
-                                currentWidth, currentHeight);
-                    }
+                    newPixels[y * newWidth + x] =
+                        GetPixelSafe(originalPixels, origX, origY,
+                            currentWidth, currentHeight);
                 }
 
                 // Set the scaled pixels to the reinitialized texture
