@@ -25,7 +25,7 @@ However, By resizing their dimensions to multiples of four, we witness significa
 
 - Resize textures to be quad-divisible with minimal quality loss
 - Batch process multiple textures at once
-- Works with PNG, JPG, TGA, EXR (TGA and EXR are usually quad-divisible already)
+- Allow considering imported size, instead of original size
 
 ## How to Install
 
