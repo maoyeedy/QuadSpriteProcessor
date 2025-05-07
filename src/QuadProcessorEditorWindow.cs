@@ -67,7 +67,7 @@ namespace QuadSpriteProcessor
         private void DrawOptions()
         {
             _processSubfolders = EditorGUILayout.Toggle("Include Subfolders", _processSubfolders);
-            _considerImporterMaxSize = EditorGUILayout.Toggle("Consider Importer Max Size", _considerImporterMaxSize);
+            _considerImporterMaxSize = EditorGUILayout.Toggle("Consider Imported Size", _considerImporterMaxSize); //TODO: a enum to switch between original and imported size
             EditorGUILayout.Space();
         }
 
