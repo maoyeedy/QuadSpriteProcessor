@@ -268,14 +268,14 @@ namespace QuadSpriteProcessor
                     try
                     {
                         if (_considerImporterMaxSize)
-                            QuadProcessor.ModifyTextureFile(
+                            QuadProcessorUtility.ModifyTextureFile(
                                 texture.Path,
                                 texture.SourceWidth,
                                 texture.SourceHeight,
                                 texture.NewSourceWidth,
                                 texture.NewSourceHeight);
                         else
-                            QuadProcessor.ModifyTextureFile(
+                            QuadProcessorUtility.ModifyTextureFile(
                                 texture.Path,
                                 texture.CurrentWidth,
                                 texture.CurrentHeight,

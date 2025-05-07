@@ -90,7 +90,7 @@ namespace QuadSpriteProcessor
 
                     try
                     {
-                        QuadProcessor.ModifyTextureFile(
+                        QuadProcessorUtility.ModifyTextureFile(
                             path,
                             info.Width,
                             info.Height,
