@@ -74,7 +74,19 @@ I once optimized a 2D game WebGL Build from 100MB to 40MB with a [custom Powersh
 
 Any bug reports/feature requests are welcome! [Open an issue](https://github.com/Maoyeedy/QuadSpriteProcessor/issues/new) and I will look into it asap.
 
-## Snippets for debugging
+## Resize Test Results
+
+- [ ] 254x254 - needs small adjustment
+- [ ] 257x257 - slightly above max size
+- [ ] 252x256 - one dimension already divisible
+- [ ] 255x253 - different remainders
+- [ ] 445x447 - similar to original problem
+- [ ] 255x255 - at edge of max size
+- [ ] 259x257 - just above max size
+- [ ] 445x445 - square version of original
+
+Command to generate test image:
 ```
-magick -size 446x445 canvas:black black_image.png
+magick -size {width}x{height} canvas:black test_{width}x{height}.png
 ```
+
