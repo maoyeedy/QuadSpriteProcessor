@@ -201,8 +201,7 @@ namespace QuadSpriteProcessor
 
             if (_textures.Count == 0)
             {
-                EditorUtility.DisplayDialog("Scan Complete",
-                    "No textures with dimensions not divisible by 4 were found.", "OK");
+                // EditorUtility.DisplayDialog("Scan Complete", "No textures with dimensions not divisible by 4 were found.", "OK");
             }
         }
 
