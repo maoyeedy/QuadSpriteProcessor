@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
@@ -6,38 +7,93 @@ using Object = UnityEngine.Object;
 
 namespace QuadSpriteProcessor
 {
+    public class ScanOptions
+    {
+        public string FolderPath { get; set; }
+        public bool IncludeSubfolders { get; set; }
+        public bool ConsiderImporterMaxSize { get; set; }
+    }
+
+    public class ProcessOptions
+    {
+        public bool ConsiderImporterMaxSize { get; set; }
+    }
+
+    public class ProcessingResult
+    {
+        public int Total { get; set; }
+        public int Succeeded { get; set; }
+        public int Failed { get; set; }
+    }
+
+    public delegate void ProgressCallback(string fileName, int current, int total);
+
     public static class QuadProcessorUtility
     {
-        #region Helpers
+        #region Core helpers
 
         public static bool AreDimensionsDivisibleByFour(int width, int height)
         {
             return width % 4 == 0 && height % 4 == 0;
         }
 
+        public static int CalculateDivisibleByFour(int dimension)
+        {
+            if (dimension % 4 == 0)
+            {
+                return dimension;
+            }
+
+            return (int)Mathf.Ceil(dimension / 4f) * 4;
+        }
+
+        #endregion
+
+        #region Texture information
+
         public static TextureInfo GetTextureInfo(string path)
         {
-            var bytes = File.ReadAllBytes(path);
-            var texture = new Texture2D(2, 2);
-            texture.LoadImage(bytes);
+            var texture = LoadRawTextureFromFile(path);
+            if (texture is null)
+            {
+                return new TextureInfo();
+            }
+
             var info = new TextureInfo { Width = texture.width, Height = texture.height };
             Object.DestroyImmediate(texture);
+
             return info;
+        }
+
+        private static Texture2D LoadRawTextureFromFile(string path)
+        {
+            try
+            {
+                var bytes = File.ReadAllBytes(path);
+                var texture = new Texture2D(2, 2);
+
+                if (!texture.LoadImage(bytes))
+                {
+                    Object.DestroyImmediate(texture);
+                    return null;
+                }
+
+                return texture;
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Error loading texture from {path}: {e.Message}");
+                return null;
+            }
         }
 
         // Helper function to safely get a pixel from the array
         public static Color GetPixelSafe(Color[] pixels, int x, int y, int width, int height)
         {
-            if (x < 0) x = 0;
-            if (y < 0) y = 0;
-            if (x >= width) x = width - 1;
-            if (y >= height) y = height - 1;
-            return pixels[y * width + x];
-        }
+            x = Mathf.Clamp(x, 0, width - 1);
+            y = Mathf.Clamp(y, 0, height - 1);
 
-        public static int CalculateDivisibleByFour(int dimension)
-        {
-            return dimension % 4 != 0 ? (int)Mathf.Ceil(dimension / 4f) * 4 : dimension;
+            return pixels[y * width + x];
         }
 
         #endregion
@@ -47,7 +103,7 @@ namespace QuadSpriteProcessor
         public static ImportedTextureInfo GetImportedTextureInfo(string assetPath)
         {
             var importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
-            if (importer == null)
+            if (importer is null)
             {
                 Debug.LogWarning($"Failed to get TextureImporter for {assetPath}");
                 return new ImportedTextureInfo(); // Return empty info
@@ -66,7 +122,8 @@ namespace QuadSpriteProcessor
 
             // Calculate what the source dimensions should be to get quad-divisible imported dimensions
             var (newSourceWidth, newSourceHeight) = CalculateRequiredSourceDimensions(
-                sourceInfo.Width, sourceInfo.Height, importedWidth, importedHeight,
+                sourceInfo.Width, sourceInfo.Height,
+                importedWidth, importedHeight,
                 newImportedWidth, newImportedHeight);
 
             return new ImportedTextureInfo
@@ -87,17 +144,23 @@ namespace QuadSpriteProcessor
             int sourceWidth, int sourceHeight, int maxSize)
         {
             if (sourceWidth <= maxSize && sourceHeight <= maxSize)
+            {
                 return (sourceWidth, sourceHeight);
+            }
 
             var aspectRatio = (float)sourceWidth / sourceHeight;
 
             if (sourceWidth >= sourceHeight)
+            {
                 return (maxSize, Mathf.RoundToInt(maxSize / aspectRatio));
+            }
+
             return (Mathf.RoundToInt(maxSize * aspectRatio), maxSize);
         }
 
         public static (int width, int height) CalculateRequiredSourceDimensions(
-            int sourceWidth, int sourceHeight, int importedWidth, int importedHeight,
+            int sourceWidth, int sourceHeight,
+            int importedWidth, int importedHeight,
             int targetImportedWidth, int targetImportedHeight)
         {
             // Calculate ratios between target and current imported dimensions
@@ -113,77 +176,243 @@ namespace QuadSpriteProcessor
 
         #endregion
 
-        #region Modify original texture file
+        #region Scanning
 
-        public static void ModifyTextureFile(string assetPath, int currentWidth, int currentHeight, int newWidth,
-            int newHeight)
+        public static List<TextureAsset> ScanFolderForNonQuadTextures(
+            ScanOptions options,
+            ProgressCallback progressCallback = null)
         {
-            if (newWidth == currentWidth && newHeight == currentHeight) return;
+            var textureFiles = FindTextureFiles(options.FolderPath, options.IncludeSubfolders);
+            return ScanTextureFiles(textureFiles, options.ConsiderImporterMaxSize, progressCallback);
+        }
+
+        private static List<string> FindTextureFiles(string folderPath, bool includeSubfolders)
+        {
+            var searchOption = includeSubfolders ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+            var fileExtensions = new[] { "*.png", "*.jpg", "*.jpeg" };
+            var files = new List<string>();
+
+            foreach (var ext in fileExtensions)
+            {
+                files.AddRange(Directory.GetFiles(folderPath, ext, searchOption));
+            }
+
+            return files;
+        }
+
+        private static List<TextureAsset> ScanTextureFiles(
+            List<string> fileList,
+            bool considerImporterMaxSize,
+            ProgressCallback progressCallback)
+        {
+            var result = new List<TextureAsset>();
+            var fileCount = fileList.Count;
+            var processedCount = 0;
+
+            foreach (var file in fileList)
+            {
+                processedCount++;
+
+                var fileName = Path.GetFileName(file);
+                progressCallback?.Invoke(fileName, processedCount, fileCount);
+
+                if (ShouldSkipFile(file))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    var textureAsset = AnalyzeTextureFile(file, considerImporterMaxSize);
+                    if (textureAsset is not null)
+                    {
+                        result.Add(textureAsset);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"Error reading texture {file}: {e.Message}");
+                }
+            }
+
+            return result;
+        }
+
+        private static bool ShouldSkipFile(string filePath)
+        {
+            var loweredPath = filePath.ToLower();
+            return loweredPath.Contains("assets\\plugins") ||
+                   loweredPath.Contains("assets\\samples") ||
+                   loweredPath.Contains("assets\\editor") ||
+                   loweredPath.Contains("~");
+        }
+
+        private static TextureAsset AnalyzeTextureFile(string filePath, bool considerImporterMaxSize)
+        {
+            if (considerImporterMaxSize)
+            {
+                return AnalyzeImportedTexture(filePath);
+            }
+            else
+            {
+                return AnalyzeActualTexture(filePath);
+            }
+        }
+
+        private static TextureAsset AnalyzeActualTexture(string filePath)
+        {
+            var textureInfo = GetTextureInfo(filePath);
+
+            if (AreDimensionsDivisibleByFour(textureInfo.Width, textureInfo.Height))
+            {
+                return null;
+            }
+
+            var newWidth = CalculateDivisibleByFour(textureInfo.Width);
+            var newHeight = CalculateDivisibleByFour(textureInfo.Height);
+
+            return new TextureAsset
+            {
+                Path = filePath,
+                CurrentWidth = textureInfo.Width,
+                CurrentHeight = textureInfo.Height,
+                NewWidth = newWidth,
+                NewHeight = newHeight,
+                Selected = true
+            };
+        }
+
+        private static TextureAsset AnalyzeImportedTexture(string filePath)
+        {
+            var importedInfo = GetImportedTextureInfo(filePath);
+
+            if (!importedInfo.NeedsProcessing)
+            {
+                return null;
+            }
+
+            return new TextureAsset
+            {
+                Path = filePath,
+                CurrentWidth = importedInfo.ImportedWidth,
+                CurrentHeight = importedInfo.ImportedHeight,
+                NewWidth = importedInfo.NewImportedWidth,
+                NewHeight = importedInfo.NewImportedHeight,
+                SourceWidth = importedInfo.SourceWidth,
+                SourceHeight = importedInfo.SourceHeight,
+                NewSourceWidth = importedInfo.NewSourceWidth,
+                NewSourceHeight = importedInfo.NewSourceHeight,
+                Selected = true
+            };
+        }
+
+        #endregion
+
+        #region Processing
+
+        public static ProcessingResult ProcessTextures(
+            List<TextureAsset> textures,
+            ProcessOptions options,
+            ProgressCallback progressCallback = null)
+        {
+            var result = new ProcessingResult();
+            var totalCount = textures.Count;
+
+            for (var i = 0; i < textures.Count; i++)
+            {
+                var texture = textures[i];
+                result.Total++;
+
+                var fileName = Path.GetFileName(texture.Path);
+                progressCallback?.Invoke(fileName, i + 1, totalCount);
+
+                try
+                {
+                    ProcessSingleTexture(texture, options.ConsiderImporterMaxSize);
+                    result.Succeeded++;
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"Failed to process {texture.Path}: {e.Message}");
+                    result.Failed++;
+                }
+            }
+
+            return result;
+        }
+
+        private static void ProcessSingleTexture(TextureAsset texture, bool considerImporterMaxSize)
+        {
+            if (considerImporterMaxSize)
+            {
+                ModifyTextureFile(
+                    texture.Path,
+                    texture.SourceWidth,
+                    texture.SourceHeight,
+                    texture.NewSourceWidth,
+                    texture.NewSourceHeight);
+            }
+            else
+            {
+                ModifyTextureFile(
+                    texture.Path,
+                    texture.CurrentWidth,
+                    texture.CurrentHeight,
+                    texture.NewWidth,
+                    texture.NewHeight);
+            }
+        }
+
+        #endregion
+
+        #region Modify texture file
+
+        public static void ModifyTextureFile(
+            string assetPath,
+            int currentWidth, int currentHeight,
+            int newWidth, int newHeight)
+        {
+            if (newWidth == currentWidth && newHeight == currentHeight)
+            {
+                return;
+            }
 
             Texture2D texture = null;
-
             try
             {
-                // Load texture from file
                 texture = LoadTextureFromFile(assetPath);
-                if (texture == null)
+                if (texture is null)
+                {
                     return;
+                }
 
                 // Use actual dimensions from loaded texture
                 currentWidth = texture.width;
                 currentHeight = texture.height;
 
-                // Store original pixels and format
-                var originalPixels = texture.GetPixels();
-                var originalFormat = texture.format;
-                var hasMipMaps = texture.mipmapCount > 1;
-
-                // Reinitialize clears all pixel data but preserves the texture object
-                if (!texture.Reinitialize(newWidth, newHeight, originalFormat, hasMipMaps))
+                if (!ResizeTexture(texture, currentWidth, currentHeight, newWidth, newHeight))
                 {
-                    Debug.LogError($"Failed to reinitialize texture: {assetPath}");
                     return;
                 }
 
-                // We need to manually scale the pixels since Reinitialize clears all pixel data
-                var newPixels = new Color[newWidth * newHeight];
-
-                for (var y = 0; y < newHeight; y++)
-                for (var x = 0; x < newWidth; x++)
+                if (!SaveTextureToFile(texture, assetPath))
                 {
-                    var u = x / (float)(newWidth - 1);
-                    var v = y / (float)(newHeight - 1);
-
-                    var origX = Mathf.FloorToInt(u * (currentWidth - 1));
-                    var origY = Mathf.FloorToInt(v * (currentHeight - 1));
-
-                    newPixels[y * newWidth + x] =
-                        GetPixelSafe(originalPixels, origX, origY,
-                            currentWidth, currentHeight);
+                    return;
                 }
-
-                // Set the scaled pixels to the reinitialized texture
-                texture.SetPixels(newPixels);
-                texture.Apply();
-
-                // Encode to file format
-                var fileExtension = Path.GetExtension(assetPath).ToLower();
-                var newBytes = EncodeTexture(texture, fileExtension);
-
-                if (newBytes == null) return;
-
-                File.WriteAllBytes(assetPath, newBytes);
-                AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceUpdate);
 
                 Debug.Log($"Resized: '{assetPath}' from {currentWidth}x{currentHeight} to {newWidth}x{newHeight}");
             }
             catch (Exception e)
             {
                 Debug.LogError($"Error modifying texture {assetPath}: {e.Message}\n{e.StackTrace}");
+                throw;
             }
             finally
             {
-                if (texture != null) Object.DestroyImmediate(texture);
+                if (texture is not null)
+                {
+                    Object.DestroyImmediate(texture);
+                }
             }
         }
 
@@ -202,6 +431,69 @@ namespace QuadSpriteProcessor
             return texture;
         }
 
+        private static bool ResizeTexture(
+            Texture2D texture,
+            int currentWidth, int currentHeight,
+            int newWidth, int newHeight)
+        {
+            // Store original pixels and format
+            var originalPixels = texture.GetPixels();
+            var originalFormat = texture.format;
+            var hasMipMaps = texture.mipmapCount > 1;
+
+            // Reinitialize clears all pixel data but preserves the texture object
+            if (!texture.Reinitialize(newWidth, newHeight, originalFormat, hasMipMaps))
+            {
+                Debug.LogError("Failed to reinitialize texture");
+                return false;
+            }
+
+            ResamplePixels(texture, originalPixels, currentWidth, currentHeight, newWidth, newHeight);
+            return true;
+        }
+
+        private static void ResamplePixels(
+            Texture2D texture,
+            Color[] originalPixels,
+            int currentWidth, int currentHeight,
+            int newWidth, int newHeight)
+        {
+            var newPixels = new Color[newWidth * newHeight];
+
+            for (var y = 0; y < newHeight; y++)
+            {
+                for (var x = 0; x < newWidth; x++)
+                {
+                    var u = x / (float)(newWidth - 1);
+                    var v = y / (float)(newHeight - 1);
+                    var origX = Mathf.FloorToInt(u * (currentWidth - 1));
+                    var origY = Mathf.FloorToInt(v * (currentHeight - 1));
+
+                    newPixels[y * newWidth + x] = GetPixelSafe(
+                        originalPixels, origX, origY, currentWidth, currentHeight);
+                }
+            }
+
+            texture.SetPixels(newPixels);
+            texture.Apply();
+        }
+
+        private static bool SaveTextureToFile(Texture2D texture, string assetPath)
+        {
+            var fileExtension = Path.GetExtension(assetPath).ToLower();
+            var newBytes = EncodeTexture(texture, fileExtension);
+
+            if (newBytes is null)
+            {
+                Debug.LogError($"Failed to encode texture as {fileExtension}");
+                return false;
+            }
+
+            File.WriteAllBytes(assetPath, newBytes);
+            AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceUpdate);
+            return true;
+        }
+
         private static byte[] EncodeTexture(Texture2D texture, string fileExtension)
         {
             switch (fileExtension)
@@ -211,10 +503,6 @@ namespace QuadSpriteProcessor
                 case ".jpg":
                 case ".jpeg":
                     return texture.EncodeToJPG();
-                // case ".tga":
-                // return texture.EncodeToTGA();
-                // case ".exr":
-                // return texture.EncodeToEXR();
                 default:
                     Debug.LogWarning($"Unsupported file format for encoding: {fileExtension}");
                     return null;

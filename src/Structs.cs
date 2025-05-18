@@ -19,18 +19,24 @@
         public bool NeedsProcessing;
     }
 
-    // For Editor Window
+    // For Editor Window only
     public class TextureAsset
     {
-        public int CurrentHeight;
-        public int CurrentWidth;
-        public int NewHeight;
-        public int NewSourceHeight;
-        public int NewSourceWidth;
-        public int NewWidth;
         public string Path;
-        public bool Selected;
-        public int SourceHeight;
+        public int CurrentWidth;
+        public int CurrentHeight;
+        public int NewWidth;
+        public int NewHeight;
+
+        // Original file res
         public int SourceWidth;
+        public int SourceHeight;
+
+        // New res needed
+        // after applying importer max size
+        public int NewSourceWidth;
+        public int NewSourceHeight;
+
+        public bool Selected;
     }
 }
