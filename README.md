@@ -59,6 +59,7 @@ It's recommended to use it when making the final release builds, instead of when
 
 ## TODO
 - [ ] Backup the original sprites? (Not high priority, as I myself'd just rely on VCS to rollback.)
+- [ ] Better options with more validationa and callbacks
 - [ ] Add tranparent pixel instead of resize for transparent PNG
 - [ ] Option to "Round to nearest power of two" (For mipmap needs)
 - [ ] Allow using it as AssetPostprocessor, with some matching rules. So that it auto-converts every sprite you import
