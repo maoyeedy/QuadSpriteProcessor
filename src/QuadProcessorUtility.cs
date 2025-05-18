@@ -44,7 +44,7 @@ namespace QuadSpriteProcessor
                 return dimension;
             }
 
-            return (int)Mathf.Ceil(dimension / 4f) * 4;
+            return (int)Math.Ceiling(dimension / 4.0) * 4;
         }
 
         #endregion
@@ -61,7 +61,6 @@ namespace QuadSpriteProcessor
 
             var info = new TextureInfo { Width = texture.width, Height = texture.height };
             Object.DestroyImmediate(texture);
-
             return info;
         }
 
@@ -71,7 +70,6 @@ namespace QuadSpriteProcessor
             {
                 var bytes = File.ReadAllBytes(path);
                 var texture = new Texture2D(2, 2);
-
                 if (!texture.LoadImage(bytes))
                 {
                     Object.DestroyImmediate(texture);
@@ -92,7 +90,6 @@ namespace QuadSpriteProcessor
         {
             x = Mathf.Clamp(x, 0, width - 1);
             y = Mathf.Clamp(y, 0, height - 1);
-
             return pixels[y * width + x];
         }
 
@@ -116,14 +113,32 @@ namespace QuadSpriteProcessor
             var (importedWidth, importedHeight) = CalculateImportedDimensions(
                 sourceInfo.Width, sourceInfo.Height, maxSize);
 
+            // Check if imported dimensions need processing
+            var needsProcessing = !AreDimensionsDivisibleByFour(importedWidth, importedHeight);
+            if (!needsProcessing)
+            {
+                return new ImportedTextureInfo
+                {
+                    SourceWidth = sourceInfo.Width,
+                    SourceHeight = sourceInfo.Height,
+                    ImportedWidth = importedWidth,
+                    ImportedHeight = importedHeight,
+                    NewImportedWidth = importedWidth,
+                    NewImportedHeight = importedHeight,
+                    NewSourceWidth = sourceInfo.Width,
+                    NewSourceHeight = sourceInfo.Height,
+                    NeedsProcessing = false
+                };
+            }
+
             // Calculate quad-divisible dimensions
             var newImportedWidth = CalculateDivisibleByFour(importedWidth);
             var newImportedHeight = CalculateDivisibleByFour(importedHeight);
 
-            // Calculate what the source dimensions should be to get quad-divisible imported dimensions
-            var (newSourceWidth, newSourceHeight) = CalculateRequiredSourceDimensions(
+            // Calculate the exact source dimensions needed to get quad-divisible imported dimensions
+            var (newSourceWidth, newSourceHeight) = CalculateExactSourceDimensions(
                 sourceInfo.Width, sourceInfo.Height,
-                importedWidth, importedHeight,
+                maxSize,
                 newImportedWidth, newImportedHeight);
 
             return new ImportedTextureInfo
@@ -136,7 +151,7 @@ namespace QuadSpriteProcessor
                 NewImportedHeight = newImportedHeight,
                 NewSourceWidth = newSourceWidth,
                 NewSourceHeight = newSourceHeight,
-                NeedsProcessing = !AreDimensionsDivisibleByFour(importedWidth, importedHeight)
+                NeedsProcessing = true
             };
         }
 
@@ -149,7 +164,6 @@ namespace QuadSpriteProcessor
             }
 
             var aspectRatio = (float)sourceWidth / sourceHeight;
-
             if (sourceWidth >= sourceHeight)
             {
                 return (maxSize, Mathf.RoundToInt(maxSize / aspectRatio));
@@ -158,20 +172,68 @@ namespace QuadSpriteProcessor
             return (Mathf.RoundToInt(maxSize * aspectRatio), maxSize);
         }
 
-        public static (int width, int height) CalculateRequiredSourceDimensions(
+        public static (int width, int height) CalculateExactSourceDimensions(
             int sourceWidth, int sourceHeight,
-            int importedWidth, int importedHeight,
+            int maxSize,
             int targetImportedWidth, int targetImportedHeight)
         {
-            // Calculate ratios between target and current imported dimensions
-            var widthRatio = (float)targetImportedWidth / importedWidth;
-            var heightRatio = (float)targetImportedHeight / importedHeight;
+            if (!IsScaledByImporter(sourceWidth, sourceHeight, maxSize))
+            {
+                return HandleUnscaledDimensions(targetImportedWidth, targetImportedHeight);
+            }
 
-            // Apply the same ratios to the source dimensions
-            return (
-                Mathf.RoundToInt(sourceWidth * widthRatio),
-                Mathf.RoundToInt(sourceHeight * heightRatio)
-            );
+            if (IsWidthConstrained(sourceWidth, sourceHeight))
+            {
+                return CalculateWidthConstrainedDimensions(sourceWidth, sourceHeight, maxSize, targetImportedWidth, targetImportedHeight);
+            }
+            else
+            {
+                return CalculateHeightConstrainedDimensions(sourceWidth, sourceHeight, maxSize, targetImportedWidth, targetImportedHeight);
+            }
+        }
+
+        private static bool IsScaledByImporter(int width, int height, int maxSize)
+        {
+            return width > maxSize || height > maxSize;
+        }
+
+        private static (int width, int height) HandleUnscaledDimensions(int targetWidth, int targetHeight)
+        {
+            // Debug.LogWarning($"Texture is not scaled by importer. Using original dimensions: {targetWidth}x{targetHeight}");
+            return (targetWidth, targetHeight);
+        }
+
+        private static bool IsWidthConstrained(int width, int height)
+        {
+            return width >= height;
+        }
+
+        private static (int width, int height) CalculateWidthConstrainedDimensions(
+            int sourceWidth, int sourceHeight, int maxSize,
+            int targetImportedWidth, int targetImportedHeight)
+        {
+            var scale = (float)maxSize / sourceWidth;
+            var scaledHeight = sourceHeight * scale;
+
+            // Calculate exact source dimensions
+            var exactSourceWidth = Mathf.RoundToInt(sourceWidth * ((float)targetImportedWidth / maxSize));
+            var exactSourceHeight = Mathf.RoundToInt(sourceHeight * ((float)targetImportedHeight / scaledHeight));
+
+            return (exactSourceWidth, exactSourceHeight);
+        }
+
+        private static (int width, int height) CalculateHeightConstrainedDimensions(
+            int sourceWidth, int sourceHeight, int maxSize,
+            int targetImportedWidth, int targetImportedHeight)
+        {
+            var scale = (float)maxSize / sourceHeight;
+            var scaledWidth = sourceWidth * scale;
+
+            // Calculate exact source dimensions
+            var exactSourceWidth = Mathf.RoundToInt(sourceWidth * ((float)targetImportedWidth / scaledWidth));
+            var exactSourceHeight = Mathf.RoundToInt(sourceHeight * ((float)targetImportedHeight / maxSize));
+
+            return (exactSourceWidth, exactSourceHeight);
         }
 
         #endregion
@@ -191,7 +253,6 @@ namespace QuadSpriteProcessor
             var searchOption = includeSubfolders ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
             var fileExtensions = new[] { "*.png", "*.jpg", "*.jpeg" };
             var files = new List<string>();
-
             foreach (var ext in fileExtensions)
             {
                 files.AddRange(Directory.GetFiles(folderPath, ext, searchOption));
@@ -208,14 +269,11 @@ namespace QuadSpriteProcessor
             var result = new List<TextureAsset>();
             var fileCount = fileList.Count;
             var processedCount = 0;
-
             foreach (var file in fileList)
             {
                 processedCount++;
-
                 var fileName = Path.GetFileName(file);
                 progressCallback?.Invoke(fileName, processedCount, fileCount);
-
                 if (ShouldSkipFile(file))
                 {
                     continue;
@@ -262,7 +320,6 @@ namespace QuadSpriteProcessor
         private static TextureAsset AnalyzeActualTexture(string filePath)
         {
             var textureInfo = GetTextureInfo(filePath);
-
             if (AreDimensionsDivisibleByFour(textureInfo.Width, textureInfo.Height))
             {
                 return null;
@@ -270,7 +327,6 @@ namespace QuadSpriteProcessor
 
             var newWidth = CalculateDivisibleByFour(textureInfo.Width);
             var newHeight = CalculateDivisibleByFour(textureInfo.Height);
-
             return new TextureAsset
             {
                 Path = filePath,
@@ -285,7 +341,6 @@ namespace QuadSpriteProcessor
         private static TextureAsset AnalyzeImportedTexture(string filePath)
         {
             var importedInfo = GetImportedTextureInfo(filePath);
-
             if (!importedInfo.NeedsProcessing)
             {
                 return null;
@@ -317,15 +372,12 @@ namespace QuadSpriteProcessor
         {
             var result = new ProcessingResult();
             var totalCount = textures.Count;
-
             for (var i = 0; i < textures.Count; i++)
             {
                 var texture = textures[i];
                 result.Total++;
-
                 var fileName = Path.GetFileName(texture.Path);
                 progressCallback?.Invoke(fileName, i + 1, totalCount);
-
                 try
                 {
                     ProcessSingleTexture(texture, options.ConsiderImporterMaxSize);
@@ -345,19 +397,16 @@ namespace QuadSpriteProcessor
         {
             if (considerImporterMaxSize)
             {
-                ModifyTextureFile(
+                // Make a direct change to the source texture to the correct dimensions
+                ModifyTextureFileDirectly(
                     texture.Path,
-                    texture.SourceWidth,
-                    texture.SourceHeight,
                     texture.NewSourceWidth,
                     texture.NewSourceHeight);
             }
             else
             {
-                ModifyTextureFile(
+                ModifyTextureFileDirectly(
                     texture.Path,
-                    texture.CurrentWidth,
-                    texture.CurrentHeight,
                     texture.NewWidth,
                     texture.NewHeight);
             }
@@ -367,16 +416,11 @@ namespace QuadSpriteProcessor
 
         #region Modify texture file
 
-        public static void ModifyTextureFile(
+        public static void ModifyTextureFileDirectly(
             string assetPath,
-            int currentWidth, int currentHeight,
-            int newWidth, int newHeight)
+            int targetWidth,
+            int targetHeight)
         {
-            if (newWidth == currentWidth && newHeight == currentHeight)
-            {
-                return;
-            }
-
             Texture2D texture = null;
             try
             {
@@ -386,11 +430,17 @@ namespace QuadSpriteProcessor
                     return;
                 }
 
-                // Use actual dimensions from loaded texture
-                currentWidth = texture.width;
-                currentHeight = texture.height;
+                var currentWidth = texture.width;
+                var currentHeight = texture.height;
 
-                if (!ResizeTexture(texture, currentWidth, currentHeight, newWidth, newHeight))
+                if (currentWidth == targetWidth && currentHeight == targetHeight)
+                {
+                    Debug.Log($"No resize needed for: '{assetPath}' - already at target size {targetWidth}x{targetHeight}");
+                    return;
+                }
+
+                // Perform direct resize to target dimensions
+                if (!ResizeTexture(texture, currentWidth, currentHeight, targetWidth, targetHeight))
                 {
                     return;
                 }
@@ -400,7 +450,7 @@ namespace QuadSpriteProcessor
                     return;
                 }
 
-                Debug.Log($"Resized: '{assetPath}' from {currentWidth}x{currentHeight} to {newWidth}x{newHeight}");
+                Debug.Log($"Resized: '{assetPath}' from {currentWidth}x{currentHeight} to {targetWidth}x{targetHeight}");
             }
             catch (Exception e)
             {
@@ -416,11 +466,19 @@ namespace QuadSpriteProcessor
             }
         }
 
+        // Legacy method kept for compatibility
+        public static void ModifyTextureFile(
+            string assetPath,
+            int currentWidth, int currentHeight,
+            int newWidth, int newHeight)
+        {
+            ModifyTextureFileDirectly(assetPath, newWidth, newHeight);
+        }
+
         private static Texture2D LoadTextureFromFile(string assetPath)
         {
             var bytes = File.ReadAllBytes(assetPath);
             var texture = new Texture2D(2, 2);
-
             if (!texture.LoadImage(bytes))
             {
                 Debug.LogError($"Failed to load image data for: {assetPath}");
@@ -459,7 +517,6 @@ namespace QuadSpriteProcessor
             int newWidth, int newHeight)
         {
             var newPixels = new Color[newWidth * newHeight];
-
             for (var y = 0; y < newHeight; y++)
             {
                 for (var x = 0; x < newWidth; x++)
@@ -468,7 +525,6 @@ namespace QuadSpriteProcessor
                     var v = y / (float)(newHeight - 1);
                     var origX = Mathf.FloorToInt(u * (currentWidth - 1));
                     var origY = Mathf.FloorToInt(v * (currentHeight - 1));
-
                     newPixels[y * newWidth + x] = GetPixelSafe(
                         originalPixels, origX, origY, currentWidth, currentHeight);
                 }
@@ -482,7 +538,6 @@ namespace QuadSpriteProcessor
         {
             var fileExtension = Path.GetExtension(assetPath).ToLower();
             var newBytes = EncodeTexture(texture, fileExtension);
-
             if (newBytes is null)
             {
                 Debug.LogError($"Failed to encode texture as {fileExtension}");

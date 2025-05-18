@@ -33,7 +33,7 @@ namespace QuadSpriteProcessor
 
             if (_textures.Count == 0)
             {
-                EditorGUILayout.HelpBox("No textures found or scan not performed yet.", MessageType.Info);
+                // EditorGUILayout.HelpBox("No textures found or scan not performed yet.", MessageType.Info);
                 return;
             }
 
