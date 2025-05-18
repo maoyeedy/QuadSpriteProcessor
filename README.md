@@ -72,3 +72,8 @@ I once optimized a 2D game WebGL Build from 100MB to 40MB with a [custom Powersh
 ## Contribution
 
 Any bug reports/feature requests are welcome! [Open an issue](https://github.com/Maoyeedy/QuadSpriteProcessor/issues/new) and I will look into it asap.
+
+## Snippets for debugging
+```
+magick -size 446x445 canvas:black black_image.png
+```
