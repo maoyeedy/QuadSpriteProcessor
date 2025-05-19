@@ -1,6 +1,6 @@
 {
   "name": "com.maoyeedy.quad-sprite-processor",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "displayName": "Quad-Divisible Sprite Processor",
   "description": "Resizes sprite dimensions to be divisible by 4, for optimal compression",
   "unity": "2021.3",
